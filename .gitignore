@@ -18,3 +18,8 @@ npm-debug.log*
 .vercel
 .env*
 !.env.example
+
+# Tooling files added by the Vercel/Neon CLI (not part of the app)
+.agents/
+.claude/skills/
+skills-lock.json
