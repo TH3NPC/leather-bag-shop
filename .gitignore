@@ -1,0 +1,16 @@
+node_modules/
+.next/
+out/
+.pgdata/
+uploads/
+*.tsbuildinfo
+next-env.d.ts
+
+# Secrets and local-only files
+.env
+.env.local
+.env.*.local
+*.local.md
+
+npm-debug.log*
+.DS_Store

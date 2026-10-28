@@ -1,0 +1,112 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens. A restrained palette: warm off-white, white, near-black,
+ * charcoal and one leather brown accent. No gradients, minimal radius.
+ */
+@theme {
+  --color-paper: #f6f3ee;
+  --color-surface: #ffffff;
+  --color-ink: #1b1815;
+  --color-charcoal: #3b3631;
+  --color-muted: #77706a;
+  --color-faint: #a59e96;
+  --color-line: #e5dfd6;
+  --color-line-strong: #d3cbc0;
+  --color-sand: #efe9e1;
+  --color-leather: #7a4a2b;
+  --color-leather-dark: #5c371f;
+  --color-success: #3d6a4a;
+  --color-success-bg: #e9f0ea;
+  --color-danger: #9a3a2c;
+  --color-danger-bg: #f6e8e5;
+  --color-warning: #8f5f17;
+  --color-warning-bg: #f5ecdc;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font-serif), ui-serif, Georgia, serif;
+
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+
+  --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-feature-settings: "cv11", "ss01";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  ::selection {
+    background: var(--color-leather);
+    color: #fff;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-leather);
+    outline-offset: 2px;
+  }
+  input, select, textarea, button {
+    font: inherit;
+  }
+  /* Number inputs without spinners (quantity steppers handle it). */
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  input[type="number"] { -moz-appearance: textfield; }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 h-12 px-6 text-[15px] font-medium tracking-[0.01em] rounded-xs transition-colors duration-150 select-none disabled:opacity-45 disabled:cursor-not-allowed;
+  }
+  .btn-primary { @apply bg-ink text-white hover:bg-charcoal; }
+  .btn-leather { @apply bg-leather text-white hover:bg-leather-dark; }
+  .btn-outline { @apply border border-ink text-ink bg-transparent hover:bg-ink hover:text-white; }
+  .btn-ghost { @apply text-ink hover:bg-sand; }
+  .btn-sm { @apply h-9 px-3.5 text-sm; }
+  .btn-danger { @apply border border-danger text-danger hover:bg-danger hover:text-white; }
+
+  .field-label { @apply block text-[13px] font-medium text-charcoal mb-1.5; }
+  .field {
+    @apply block w-full h-12 px-3.5 bg-surface border border-line-strong rounded-xs text-[15px] text-ink placeholder:text-faint transition-colors focus:border-ink focus:outline-none;
+  }
+  textarea.field { @apply h-auto py-3 leading-relaxed; }
+  .field-error { @apply mt-1.5 text-[13px] text-danger; }
+  .field-hint { @apply mt-1.5 text-[13px] text-muted; }
+  .field[aria-invalid="true"] { @apply border-danger; }
+
+  .eyebrow { @apply text-[11px] font-semibold uppercase tracking-[0.18em] text-muted; }
+  .display { @apply font-display font-normal tracking-[-0.01em] leading-[1.05]; }
+
+  .tag { @apply inline-flex items-center h-6 px-2 text-[11px] font-semibold uppercase tracking-[0.08em] rounded-xs; }
+
+  /* Admin data tables */
+  .table { @apply w-full text-sm border-collapse; }
+  .table th { @apply text-left text-[12px] font-semibold uppercase tracking-[0.06em] text-muted py-2.5 px-3 border-b border-line whitespace-nowrap; }
+  .table td { @apply py-3 px-3 border-b border-line align-top; }
+  .table tbody tr:hover { @apply bg-paper; }
+  .num { @apply text-right tabular-nums whitespace-nowrap; }
+}
+
+/* Hide scrollbars on horizontal chip rows while keeping them scrollable. */
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* Bottom safe area for Android/iOS gesture bars, inside and outside Telegram. */
+.pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}
+
+@media print {
+  .no-print { display: none !important; }
+  body { background: #fff; }
+}

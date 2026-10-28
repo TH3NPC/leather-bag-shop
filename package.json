@@ -1,0 +1,55 @@
+{
+  "name": "leather-bag-shop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Telegram Mini App and admin dashboard for a leather bag shop in Ethiopia",
+  "scripts": {
+    "db:start": "node scripts/db.mjs",
+    "dev:next": "next dev -H 0.0.0.0 -p 3000",
+    "dev": "node scripts/dev.mjs",
+    "build": "prisma generate && next build",
+    "vercel-build": "prisma generate && prisma migrate deploy && next build",
+    "start": "next start -H 0.0.0.0 -p 3000",
+    "typecheck": "tsc --noEmit",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:reset": "prisma migrate reset --force",
+    "admin:create": "tsx scripts/create-admin.ts",
+    "setup": "node scripts/setup.mjs",
+    "test": "tsx --test tests/*.test.ts",
+    "postinstall": "prisma generate"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "6.19.3",
+    "lucide-react": "1.63.0",
+    "next": "15.5.28",
+    "react": "19.1.10",
+    "react-dom": "19.1.10",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/node": "22.20.5",
+    "@types/react": "19.1.17",
+    "@types/react-dom": "19.1.11",
+    "dotenv": "16.6.1",
+    "embedded-postgres": "18.4.0-beta.17",
+    "prisma": "6.19.3",
+    "tailwindcss": "4.3.3",
+    "tsx": "4.23.15",
+    "typescript": "5.8.3"
+  },
+  "allowScripts": {
+    "@prisma/client@6.19.3": true,
+    "@prisma/engines@6.19.3": true,
+    "esbuild@0.28.2": true,
+    "prisma@6.19.3": true
+  },
+  "optionalDependencies": {
+    "@embedded-postgres/windows-x64": "^18.4.0-beta.17"
+  }
+}

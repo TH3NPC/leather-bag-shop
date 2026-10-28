@@ -1,0 +1,339 @@
+// All money values are stored as integer santim (1 ETB = 100 santim)
+// to avoid floating point rounding. Columns are suffixed with `Cents`.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AdminRole {
+  OWNER
+  STAFF
+}
+
+enum ProductStatus {
+  ACTIVE // visible and purchasable when in stock
+  UNAVAILABLE // visible in admin only, hidden from the shop
+  ARCHIVED // soft-deleted, kept for order history
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  READY_FOR_PICKUP
+  OUT_FOR_DELIVERY
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH_ON_DELIVERY
+  BANK_TRANSFER
+  TELEBIRR
+  CHAPA
+}
+
+enum PaymentStatus {
+  UNPAID
+  PARTIALLY_PAID
+  PAID
+  PARTIALLY_REFUNDED
+  REFUNDED
+}
+
+enum FulfillmentType {
+  DELIVERY
+  PICKUP
+}
+
+enum PaymentKind {
+  PAYMENT
+  REFUND
+}
+
+enum MovementType {
+  ORDER_PLACED // stock reserved when a customer places an order
+  ORDER_CANCELLED // reserved stock returned when an order is cancelled
+  RESTOCK // new stock received
+  CORRECTION // manual count correction
+  DAMAGED // written off
+  INITIAL // starting stock when a product is created
+}
+
+enum ExpenseCategory {
+  DELIVERY
+  PACKAGING
+  RENT
+  SALARIES
+  MARKETING
+  UTILITIES
+  SUPPLIES
+  OTHER
+}
+
+model AdminUser {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String
+  passwordHash String
+  role         AdminRole @default(STAFF)
+  active       Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  sessions       AdminSession[]
+  payments       Payment[]
+  movements      InventoryMovement[]
+  expenses       Expense[]
+  statusEvents   OrderStatusEvent[]
+  priceChanges   ProductPriceHistory[]
+}
+
+model AdminSession {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  adminId   String
+  admin     AdminUser @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  ip        String?
+  userAgent String?
+  createdAt DateTime  @default(now())
+
+  @@index([adminId])
+  @@index([expiresAt])
+}
+
+model Category {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  slug      String    @unique
+  sortOrder Int       @default(0)
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  products  Product[]
+}
+
+model Product {
+  id                String        @id @default(cuid())
+  name              String
+  slug              String        @unique
+  sku               String?       @unique
+  description       String
+  priceCents        Int
+  costCents         Int?
+  categoryId        String
+  category          Category      @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  colors            String[]
+  stock             Int           @default(0)
+  lowStockThreshold Int           @default(3)
+  status            ProductStatus @default(ACTIVE)
+  featured          Boolean       @default(false)
+  newArrival        Boolean       @default(false)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  images       ProductImage[]
+  orderItems   OrderItem[]
+  movements    InventoryMovement[]
+  priceHistory ProductPriceHistory[]
+
+  @@index([categoryId])
+  @@index([status, featured])
+  @@index([status, newArrival])
+  @@index([createdAt])
+}
+
+model ProductImage {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url       String
+  alt       String   @default("")
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([productId, sortOrder])
+}
+
+model ProductPriceHistory {
+  id          String     @id @default(cuid())
+  productId   String
+  product     Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  priceCents  Int
+  costCents   Int?
+  changedById String?
+  changedBy   AdminUser? @relation(fields: [changedById], references: [id], onDelete: SetNull)
+  createdAt   DateTime   @default(now())
+
+  @@index([productId, createdAt])
+}
+
+model Customer {
+  id               String   @id @default(cuid())
+  name             String
+  phone            String
+  // Only set from Telegram initData that was verified on the server.
+  telegramId       String?  @unique
+  telegramUsername String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  orders           Order[]
+
+  @@index([phone])
+}
+
+model Order {
+  id               String          @id @default(cuid())
+  number           String          @unique
+  // Secret used in the confirmation link so order numbers alone cannot be browsed.
+  accessKey        String
+  customerId       String
+  customer         Customer        @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  status           OrderStatus     @default(PENDING)
+  paymentMethod    PaymentMethod
+  paymentStatus    PaymentStatus   @default(UNPAID)
+  fulfillment      FulfillmentType
+  // Contact and delivery snapshot at the time of ordering.
+  customerName     String
+  phone            String
+  address          String?
+  landmark         String?
+  notes            String?
+  subtotalCents    Int
+  deliveryFeeCents Int             @default(0)
+  totalCents       Int
+  // Running totals of verified payments and refunds (kept in sync in transactions).
+  paidCents        Int             @default(0)
+  refundedCents    Int             @default(0)
+  // True while this order's quantities are subtracted from product stock.
+  stockReserved    Boolean         @default(false)
+  confirmedAt      DateTime?
+  completedAt      DateTime?
+  cancelledAt      DateTime?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  items        OrderItem[]
+  payments     Payment[]
+  movements    InventoryMovement[]
+  statusEvents OrderStatusEvent[]
+
+  @@index([createdAt])
+  @@index([status, createdAt])
+  @@index([paymentMethod])
+  @@index([customerId])
+}
+
+model OrderItem {
+  id             String   @id @default(cuid())
+  orderId        String
+  order          Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId      String?
+  product        Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  // Snapshots: never change after the order is placed.
+  productName    String
+  sku            String?
+  color          String?
+  imageUrl       String?
+  unitPriceCents Int
+  unitCostCents  Int?
+  quantity       Int
+  lineTotalCents Int
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model Payment {
+  id           String        @id @default(cuid())
+  orderId      String
+  order        Order         @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  kind         PaymentKind   @default(PAYMENT)
+  method       PaymentMethod
+  amountCents  Int
+  reference    String?
+  note         String?
+  // Date the money was actually received or returned.
+  receivedAt   DateTime      @default(now())
+  recordedById String?
+  recordedBy   AdminUser?    @relation(fields: [recordedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime      @default(now())
+
+  @@index([orderId])
+  @@index([receivedAt])
+}
+
+model OrderStatusEvent {
+  id        String       @id @default(cuid())
+  orderId   String
+  order     Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  from      OrderStatus?
+  to        OrderStatus
+  note      String?
+  adminId   String?
+  admin     AdminUser?   @relation(fields: [adminId], references: [id], onDelete: SetNull)
+  createdAt DateTime     @default(now())
+
+  @@index([orderId, createdAt])
+}
+
+model InventoryMovement {
+  id         String       @id @default(cuid())
+  productId  String
+  product    Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  type       MovementType
+  change     Int
+  stockAfter Int
+  reason     String?
+  orderId    String?
+  order      Order?       @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  adminId    String?
+  admin      AdminUser?   @relation(fields: [adminId], references: [id], onDelete: SetNull)
+  createdAt  DateTime     @default(now())
+
+  @@index([productId, createdAt])
+  @@index([createdAt])
+}
+
+model Expense {
+  id          String          @id @default(cuid())
+  category    ExpenseCategory
+  amountCents Int
+  date        DateTime
+  description String
+  adminId     String?
+  admin       AdminUser?      @relation(fields: [adminId], references: [id], onDelete: SetNull)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([date])
+}
+
+// Single row (id = 1) holding editable shop identity and storefront content.
+model ShopSettings {
+  id                 Int             @id @default(1)
+  shopName           String          @default("Your Shop Name")
+  tagline            String          @default("Handcrafted leather, made in Ethiopia")
+  heroTitle          String          @default("Leather that carries a lifetime")
+  heroSubtitle       String          @default("Full-grain bags cut and stitched by hand.")
+  heroImageUrl       String?
+  promoActive        Boolean         @default(false)
+  promoTitle         String          @default("")
+  promoText          String          @default("")
+  contactPhone       String          @default("")
+  pickupAddress      String          @default("")
+  deliveryFeeCents   Int             @default(0)
+  deliveryNote       String          @default("")
+  paymentMethods     PaymentMethod[] @default([CASH_ON_DELIVERY, BANK_TRANSFER])
+  bankDetails        String          @default("")
+  telebirrDetails    String          @default("")
+  lowStockThreshold  Int             @default(3)
+  updatedAt          DateTime        @updatedAt
+}
