@@ -1,7 +1,7 @@
 import "server-only";
 import { NextResponse } from "next/server";
 import { ZodError, type ZodType } from "zod";
-import type { AdminRole } from "@prisma/client";
+import { Prisma, type AdminRole } from "@prisma/client";
 import { getCurrentAdmin, type SessionAdmin } from "./auth";
 
 /** An error whose message is safe to show to the user. */
@@ -28,6 +28,13 @@ function zodFields(err: ZodError): Record<string, string> {
 export function handleError(err: unknown) {
   if (err instanceof AppError) return jsonError(err.message, err.status, err.fields);
   if (err instanceof ZodError) return jsonError("Please check the highlighted fields.", 422, zodFields(err));
+  if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    if (err.code === "P2002") {
+      const target = String((err.meta?.target as string[] | undefined)?.join(", ") ?? "value");
+      return jsonError(`That ${target.includes("sku") ? "SKU" : target.includes("name") ? "name" : target} is already in use.`, 409, target.includes("sku") ? { sku: "Already used by another product" } : target.includes("name") ? { name: "Already in use" } : undefined);
+    }
+    if (err.code === "P2025") return jsonError("This record no longer exists. Please reload.", 404);
+  }
   console.error("[api] Unexpected error:", err);
   return jsonError("Something went wrong on our side. Please try again.", 500);
 }

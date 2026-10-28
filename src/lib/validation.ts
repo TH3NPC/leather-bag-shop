@@ -99,7 +99,13 @@ export const productSchema = z.object({
   featured: z.boolean().default(false),
   newArrival: z.boolean().default(false),
   images: z
-    .array(z.object({ url: z.string().min(1).max(500), alt: clean(200).default("") }))
+    .array(
+      z.object({
+        // Uploaded files (/media/...) or the demo catalog's photo host only.
+        url: z.string().max(500).regex(/^(\/media\/[a-z0-9]+|https:\/\/images\.unsplash\.com\/[\w\-./?=&%]+)$/, "Invalid image"),
+        alt: clean(200).default(""),
+      }),
+    )
     .max(8)
     .default([]),
 });

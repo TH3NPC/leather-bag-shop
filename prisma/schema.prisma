@@ -339,3 +339,13 @@ model ShopSettings {
   lowStockThreshold  Int             @default(3)
   updatedAt          DateTime        @updatedAt
 }
+
+// Uploaded product images, stored in the database so they work on serverless
+// hosting without extra file storage. Served by /media/[id].
+model MediaFile {
+  id        String   @id @default(cuid())
+  mime      String
+  size      Int
+  data      Bytes
+  createdAt DateTime @default(now())
+}
