@@ -3,10 +3,11 @@
 A Telegram Mini App storefront and admin dashboard for a leather bag shop in Ethiopia.
 Prices are in Ethiopian Birr (ETB) and business dates use Addis Ababa time.
 
-> Status: work in progress. The customer storefront (catalog, product pages, cart,
-> checkout, order tracking) is complete. The admin dashboard is being built next.
-> The shop name "Leather Atelier" and all products with `DEMO-` SKUs are placeholder
-> demonstration data to be replaced by the owner.
+- **Live shop:** https://leather-bag-shop.vercel.app
+- **Admin:** https://leather-bag-shop.vercel.app/admin
+
+The shop name "Leather Atelier" and all products with `DEMO-` SKUs are placeholder
+demonstration data to be replaced by the owner (Admin → Settings / Products).
 
 ## Stack
 
@@ -29,6 +30,32 @@ Then open http://localhost:3000. `npm run dev` also prints a LAN address for tes
 on the same Wi-Fi (allow Node.js through Windows Firewall on *private* networks if prompted).
 
 Configuration lives in `.env` (never committed). See [`.env.example`](.env.example) for every variable.
+
+## Admin accounts
+
+There is no public sign-up and no default password. Create the first owner account from a terminal:
+
+```bash
+npm run admin:create -- --email you@example.com --name "Your Name"
+```
+
+You are asked for the password at a hidden prompt (minimum 10 characters); only a scrypt hash is
+stored. Running the command again for the same email resets the password and signs out all sessions.
+Add `--role staff` for staff accounts: staff can manage orders, products and inventory, while only
+owners can see expenses, profit and settings. To manage accounts on the live site, run the same
+command with `DATABASE_URL` set to the production database (`vercel env pull`).
+
+## Telegram
+
+1. In [@BotFather](https://t.me/BotFather): `/mybots` → your bot → *Bot Settings* → *Configure Mini App*
+   (or *Menu Button*) and set the URL to `https://leather-bag-shop.vercel.app`.
+2. Set `TELEGRAM_BOT_TOKEN` and `TELEGRAM_ADMIN_CHAT_ID` in Vercel (server-side only).
+3. Open the bot and press **Start** once, otherwise the bot is not allowed to message you.
+
+Inside Telegram the app verifies the signed `initData` on the server before linking an order to a
+Telegram user, uses Telegram's native back button and matches its header colours. New orders are
+sent to the admin chat; customers who opened the shop from Telegram get status updates.
+Telegram requires HTTPS, so the Mini App cannot be opened in Telegram from `localhost`.
 
 ## Deploying to Vercel
 
